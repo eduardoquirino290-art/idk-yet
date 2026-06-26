@@ -212,6 +212,17 @@
     .modal-wide { max-width: 540px; max-height: 90svh; overflow-y: auto; }
     .muted-note { color: var(--muted); font-size: 0.68rem; }
 
+    /* ── FILE UPLOAD ── */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 6px; padding: 1.4rem 1rem;
+      text-align: center; cursor: pointer; margin-bottom: 1rem;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--surface2); }
+    .upload-zone .uz-main { font-size: 0.82rem; color: var(--text); }
+    .upload-zone .uz-sub { font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem; }
+    #upload-status { font-size: 0.72rem; color: var(--accent); margin-top: 0.5rem; min-height: 1em; }
+
     /* ── PROJECT THUMB PREVIEW + PRESETS ── */
     .proj-preview {
       height: 120px; border-radius: 6px; margin-bottom: 1.1rem;
@@ -462,8 +473,15 @@
       </div>
 
       <div id="pm-image-row" style="display:none">
-        <label>Image URL</label>
-        <input id="pm-image" type="url" placeholder="https://… .jpg or .png" oninput="updateProjPreview()" />
+        <label>Upload a photo</label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="pm-file" accept="image/*" hidden />
+          <div class="uz-main">Click to choose a photo — or drag &amp; drop it here</div>
+          <div class="uz-sub">Photos are auto-resized &amp; compressed before saving</div>
+          <div id="upload-status"></div>
+        </div>
+        <label>…or paste an image URL</label>
+        <input id="pm-image" type="url" placeholder="https://… .jpg or .png" oninput="onImageUrlInput()" />
       </div>
 
       <p class="err" id="pm-err">Title and category are required.</p>
@@ -689,6 +707,7 @@
   /* ── PROJECT EDITOR MODAL ── */
   let editingIndex = null;
   let _selectedPreset = 'thumb-1';
+  let _pmImage = '';   // current image for the editor (uploaded data URL or pasted URL)
 
   function openProjectModal(i) {
     editingIndex = (typeof i === 'number') ? i : null;
@@ -698,7 +717,11 @@
     document.getElementById('pm-tag').value   = p.tag || '';
     document.getElementById('pm-desc').value  = p.desc || '';
     document.getElementById('pm-url').value   = p.url || '';
-    document.getElementById('pm-image').value = p.image || '';
+    _pmImage = p.image || '';
+    const imgInput = document.getElementById('pm-image');
+    const upStatus = document.getElementById('upload-status');
+    if (_pmImage.startsWith('data:')) { imgInput.value = ''; if (upStatus) upStatus.textContent = '✓ Photo attached'; }
+    else { imgInput.value = _pmImage; if (upStatus) upStatus.textContent = ''; }
     document.getElementById('pm-err').style.display = 'none';
 
     let type = 'preset';
@@ -770,10 +793,9 @@
       return;
     }
     if (t === 'image') {
-      const url = document.getElementById('pm-image').value.trim();
-      if (url) { prev.style.background = '#000'; prev.innerHTML = `<img src="${url}" alt="" />`; return; }
+      if (_pmImage) { prev.style.background = '#000'; prev.innerHTML = `<img src="${_pmImage}" alt="" />`; return; }
       prev.style.background = 'var(--surface2)';
-      prev.innerHTML = '<span class="thumb-label">add an image url</span>';
+      prev.innerHTML = '<span class="thumb-label">upload or paste an image</span>';
       return;
     }
     let c1, c2;
@@ -806,7 +828,7 @@
     if (t === 'screenshot') {
       proj.screenshot = true;
     } else if (t === 'image') {
-      proj.image = document.getElementById('pm-image').value.trim();
+      proj.image = _pmImage || document.getElementById('pm-image').value.trim();
     } else if (t === 'custom') {
       proj.gradient = [document.getElementById('pm-grad1').value, document.getElementById('pm-grad2').value];
     } else {
@@ -824,6 +846,71 @@
     closeProjectModal();
     renderProjList();
   }
+
+  /* ── PHOTO UPLOAD (resize + compress, embed as data URL) ── */
+  function onImageUrlInput() {
+    _pmImage = document.getElementById('pm-image').value.trim();
+    const status = document.getElementById('upload-status');
+    if (status) status.textContent = '';
+    updateProjPreview();
+  }
+
+  function fileToCompressedDataURL(file, maxDim = 1200, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) return reject(new Error('Please choose an image file.'));
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (Math.max(width, height) > maxDim) {
+            const s = maxDim / Math.max(width, height);
+            width = Math.round(width * s); height = Math.round(height * s);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('Could not read that image.'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Could not read that file.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFile(file) {
+    const status = document.getElementById('upload-status');
+    status.style.color = 'var(--accent)';
+    status.textContent = 'Optimising photo…';
+    try {
+      _pmImage = await fileToCompressedDataURL(file);
+      document.getElementById('pm-image').value = '';
+      const kb = Math.round(_pmImage.length * 0.75 / 1024);
+      status.textContent = `✓ Photo attached (~${kb} KB)`;
+      updateProjPreview();
+    } catch (e) {
+      status.style.color = 'var(--danger)';
+      status.textContent = '✗ ' + e.message;
+    }
+  }
+
+  function setupUpload() {
+    const zone = document.getElementById('upload-zone');
+    const file = document.getElementById('pm-file');
+    if (!zone || !file) return;
+    zone.addEventListener('click', () => file.click());
+    file.addEventListener('change', () => { if (file.files[0]) handleFile(file.files[0]); file.value = ''; });
+    ['dragover','dragenter'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('drag'); }));
+    ['dragleave','dragend'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('drag'); }));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('drag');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+  }
+  setupUpload();
 
   /* ── SKILLS ── */
   function renderSkillEditList() {
