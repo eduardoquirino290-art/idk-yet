@@ -5,60 +5,6 @@
   },
   "projects": [
     {
-      "id": "001",
-      "tag": "Brand Identity",
-      "title": "Studio Nocturn",
-      "desc": "Visual identity and website for a creative studio.",
-      "thumb": "thumb-1",
-      "url": "",
-      "image": ""
-    },
-    {
-      "id": "002",
-      "tag": "Web Design",
-      "title": "Archipelago",
-      "desc": "Immersive portfolio for a photographer collective.",
-      "thumb": "thumb-2",
-      "url": "",
-      "image": ""
-    },
-    {
-      "id": "003",
-      "tag": "UI / UX",
-      "title": "Rumo App",
-      "desc": "Direction and discovery tool for independent music.",
-      "thumb": "thumb-3",
-      "url": "",
-      "image": ""
-    },
-    {
-      "id": "004",
-      "tag": "Web Design",
-      "title": "Verdant Market",
-      "desc": "E-commerce experience for a sustainable goods brand.",
-      "thumb": "thumb-4",
-      "url": "",
-      "image": ""
-    },
-    {
-      "id": "005",
-      "tag": "Art Direction",
-      "title": "Helio Magazine",
-      "desc": "Digital editorial design for a culture publication.",
-      "thumb": "thumb-5",
-      "url": "",
-      "image": ""
-    },
-    {
-      "id": "006",
-      "tag": "Brand Identity",
-      "title": "Solstice Festival",
-      "desc": "Campaign identity and digital presence for annual arts fest.",
-      "thumb": "thumb-6",
-      "url": "",
-      "image": ""
-    },
-    {
       "title": "Quincenera",
       "tag": "RSVP Website",
       "desc": "A PAST project RSVP website designed for special events. Features include event details, an online RSVP form, countdown timer, photo gallery, schedule, and mobile-friendly design, making it easy for guests to stay informed and respond online.",
