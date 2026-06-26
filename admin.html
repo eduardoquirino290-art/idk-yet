@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Rocky Mount Design Co.</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111;
+      --surface2: #181818;
+      --border: #222;
+      --accent: #c8f542;
+      --accent-dim: #9cbd2e;
+      --text: #f0f0f0;
+      --muted: #666;
+      --danger: #f54242;
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh; }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2.5rem;
+    }
+
+    .login-box h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .login-box p { color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem; }
+
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; letter-spacing: 0.04em; }
+
+    input, select, textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 1rem;
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .btn-primary { background: var(--accent); color: #0a0a0a; width: 100%; }
+    .btn-primary:hover { background: var(--accent-dim); }
+    .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.75rem; }
+
+    .error-msg { color: var(--danger); font-size: 0.8rem; margin-top: 0.5rem; display: none; }
+
+    /* ── ADMIN LAYOUT ── */
+    #admin-screen { display: none; }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(10,10,10,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-logo { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); }
+    .header-user { font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 1rem; }
+
+    .admin-body {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+    }
+
+    /* ── SECTION CARDS ── */
+    .admin-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .admin-section-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .admin-section-header h2 { font-size: 0.95rem; font-weight: 600; }
+    .admin-section-header p { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+    .admin-section-body { padding: 1.5rem; }
+
+    /* ── PROJECTS ── */
+    .project-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+
+    .project-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .project-item-info { flex: 1; min-width: 0; }
+    .project-item-title { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .project-item-tag { font-size: 0.7rem; color: var(--accent); font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .project-item-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+    /* ── ADD PROJECT FORM ── */
+    .add-form { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem; }
+    .add-form h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; color: var(--muted); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+    .form-row input, .form-row select { margin-bottom: 0; }
+    .form-actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
+
+    /* ── CONTACT FIELDS ── */
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 600px) { .contact-grid { grid-template-columns: 1fr; } }
+    .contact-grid input { margin-bottom: 0; }
+
+    /* ── SAVE BAR ── */
+    .save-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      z-index: 100;
+    }
+
+    .save-bar-msg { font-size: 0.8rem; color: var(--muted); }
+    .save-bar-actions { display: flex; gap: 0.75rem; }
+    #save-status { font-size: 0.8rem; color: var(--accent); display: none; }
+
+    /* ── IMAGE UPLOAD ── */
+    .image-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 4px;
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      margin-bottom: 1rem;
+    }
+    .image-upload-area:hover { border-color: var(--accent); }
+    .image-upload-area p { font-size: 0.75rem; color: var(--muted); }
+    .image-preview { max-width: 100%; max-height: 120px; border-radius: 4px; margin-top: 0.5rem; display: none; }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Admin Access</h1>
+    <p>Rocky Mount Design Co. — site management</p>
+
+    <label>Admin Password</label>
+    <input type="password" id="admin-password" placeholder="Enter password" />
+
+    <label>GitHub Token <span style="color:var(--muted);font-size:0.7rem;">(repo scope — stored in session only)</span></label>
+    <input type="password" id="github-token" placeholder="github_pat_..." />
+
+    <button class="btn btn-primary" onclick="login()">Sign In</button>
+    <p class="error-msg" id="login-error">Incorrect password or invalid token.</p>
+  </div>
+</div>
+
+<!-- ── ADMIN ── -->
+<div id="admin-screen">
+  <header>
+    <span class="header-logo">rocky mount design / admin</span>
+    <div class="header-user">
+      <span id="admin-user-label"></span>
+      <a href="index.html" class="btn btn-ghost btn-sm">← View Site</a>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="admin-body">
+
+    <!-- PROJECTS -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div>
+          <h2>Projects</h2>
+          <p>Add, edit, or remove portfolio items. Drag to reorder (coming soon).</p>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="project-list" id="project-list"></div>
+
+        <!-- ADD PROJECT FORM -->
+        <div class="add-form">
+          <h3>Add New Project</h3>
+          <div class="form-row">
+            <div>
+              <label>Title</label>
+              <input type="text" id="new-title" placeholder="Project name" />
+            </div>
+            <div>
+              <label>Tag / Category</label>
+              <input type="text" id="new-tag" placeholder="Web Design, Brand Identity…" />
+            </div>
+          </div>
+          <label>Description</label>
+          <textarea id="new-desc" placeholder="Short description of the project…"></textarea>
+          <label>Live URL <span style="color:var(--muted);font-size:0.7rem;">(optional — makes card clickable)</span></label>
+          <input type="url" id="new-url" placeholder="https://…" />
+          <label>Thumbnail Image <span style="color:var(--muted);font-size:0.7rem;">(optional — paste URL or upload)</span></label>
+          <input type="url" id="new-image" placeholder="https://… or leave blank for color block" />
+          <div class="form-actions">
+            <button class="btn btn-primary" style="width:auto;" onclick="addProject()">+ Add Project</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTACT -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div>
+          <h2>Contact Info</h2>
+          <p>Updates the phone, email, and location shown on the site.</p>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="contact-grid">
+          <div>
+            <label>Phone (display)</label>
+            <input type="text" id="c-phone" placeholder="(252) 471-9451" />
+          </div>
+          <div>
+            <label>Phone (href — digits only)</label>
+            <input type="text" id="c-phone-href" placeholder="+12524719451" />
+          </div>
+          <div>
+            <label>Email</label>
+            <input type="email" id="c-email" placeholder="hello@…" />
+          </div>
+          <div>
+            <label>Location</label>
+            <input type="text" id="c-location" placeholder="Rocky Mount, NC, USA" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HERO TEXT -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div>
+          <h2>Hero Text</h2>
+          <p>The large headline and description on the front page.</p>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <label>Eyebrow (small text above headline)</label>
+        <input type="text" id="h-eyebrow" />
+        <div class="form-row">
+          <div>
+            <label>Heading line 1</label>
+            <input type="text" id="h-line1" />
+          </div>
+          <div>
+            <label>Accent word (highlighted)</label>
+            <input type="text" id="h-accent" />
+          </div>
+        </div>
+        <label>Heading line 2</label>
+        <input type="text" id="h-line2" />
+        <label>Description paragraph</label>
+        <textarea id="h-desc"></textarea>
+      </div>
+    </div>
+
+    <!-- ABOUT -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div>
+          <h2>About Text</h2>
+          <p>The three paragraphs in the About section.</p>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <label>Paragraph 1</label>
+        <textarea id="a-p1"></textarea>
+        <label>Paragraph 2</label>
+        <textarea id="a-p2"></textarea>
+        <label>Paragraph 3</label>
+        <textarea id="a-p3"></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- save bar -->
+  <div class="save-bar">
+    <span class="save-bar-msg">Changes are saved directly to GitHub and go live in ~1 min.</span>
+    <div class="save-bar-actions">
+      <span id="save-status">Saving…</span>
+      <button class="btn btn-primary" onclick="saveAll()">Save & Publish</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── CONFIG ── */
+  const REPO = 'eduardoquirino290-art/idk-yet';
+  const FILE = 'data.json';
+  const ADMINS = {
+    'anther':   'anther2026',
+    'eduardo':  'eduardo2026'
+  };
+
+  let token = '';
+  let data = null;
+
+  /* ── LOGIN ── */
+  function login() {
+    const pw = document.getElementById('admin-password').value.trim();
+    const tok = document.getElementById('github-token').value.trim();
+    const err = document.getElementById('login-error');
+
+    const match = Object.entries(ADMINS).find(([user, pass]) => pass === pw);
+    if (!match) { err.style.display = 'block'; err.textContent = 'Incorrect password.'; return; }
+    if (!tok) { err.style.display = 'block'; err.textContent = 'GitHub token required.'; return; }
+
+    token = tok;
+    sessionStorage.setItem('rm_token', tok);
+    sessionStorage.setItem('rm_user', match[0]);
+    err.style.display = 'none';
+    initAdmin(match[0]);
+  }
+
+  function logout() {
+    sessionStorage.clear();
+    token = '';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('admin-screen').style.display = 'none';
+  }
+
+  document.getElementById('admin-password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  document.getElementById('github-token').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+  /* ── AUTO-LOGIN from session ── */
+  (function() {
+    const t = sessionStorage.getItem('rm_token');
+    const u = sessionStorage.getItem('rm_user');
+    if (t && u) { token = t; initAdmin(u); }
+  })();
+
+  /* ── INIT ── */
+  async function initAdmin(user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    document.getElementById('admin-user-label').textContent = 'Signed in as ' + user;
+
+    data = await fetchData();
+    populateFields();
+  }
+
+  /* ── FETCH data.json from GitHub ── */
+  async function fetchData() {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const json = await res.json();
+    const content = atob(json.content.replace(/\n/g, ''));
+    return { ...JSON.parse(content), _sha: json.sha };
+  }
+
+  /* ── POPULATE FORM ── */
+  function populateFields() {
+    renderProjectList();
+
+    const c = data.contact || {};
+    document.getElementById('c-phone').value = c.phone || '';
+    document.getElementById('c-phone-href').value = c.phoneHref || '';
+    document.getElementById('c-email').value = c.email || '';
+    document.getElementById('c-location').value = c.location || '';
+
+    const h = data.hero || {};
+    document.getElementById('h-eyebrow').value = h.eyebrow || '';
+    document.getElementById('h-line1').value = h.heading1 || '';
+    document.getElementById('h-accent').value = h.headingAccent || '';
+    document.getElementById('h-line2').value = h.heading2 || '';
+    document.getElementById('h-desc').value = h.desc || '';
+
+    const a = data.about || {};
+    document.getElementById('a-p1').value = a.p1 || '';
+    document.getElementById('a-p2').value = a.p2 || '';
+    document.getElementById('a-p3').value = a.p3 || '';
+  }
+
+  /* ── RENDER PROJECT LIST ── */
+  function renderProjectList() {
+    const list = document.getElementById('project-list');
+    list.innerHTML = '';
+    (data.projects || []).forEach((p, i) => {
+      const el = document.createElement('div');
+      el.className = 'project-item';
+      el.innerHTML = `
+        <div class="project-item-info">
+          <div class="project-item-tag">${p.tag}</div>
+          <div class="project-item-title">${p.title}</div>
+        </div>
+        <div class="project-item-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editProject(${i})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="removeProject(${i})">Remove</button>
+        </div>`;
+      list.appendChild(el);
+    });
+  }
+
+  /* ── ADD PROJECT ── */
+  function addProject() {
+    const title = document.getElementById('new-title').value.trim();
+    const tag   = document.getElementById('new-tag').value.trim();
+    const desc  = document.getElementById('new-desc').value.trim();
+    const url   = document.getElementById('new-url').value.trim();
+    const image = document.getElementById('new-image').value.trim();
+
+    if (!title || !tag) { alert('Title and tag are required.'); return; }
+
+    const id = String(Date.now());
+    data.projects = data.projects || [];
+    data.projects.push({ id, tag, title, desc, url, image });
+
+    renderProjectList();
+    document.getElementById('new-title').value = '';
+    document.getElementById('new-tag').value = '';
+    document.getElementById('new-desc').value = '';
+    document.getElementById('new-url').value = '';
+    document.getElementById('new-image').value = '';
+  }
+
+  /* ── EDIT PROJECT (inline prompt for now) ── */
+  function editProject(i) {
+    const p = data.projects[i];
+    const newTitle = prompt('Title:', p.title); if (newTitle === null) return;
+    const newTag   = prompt('Tag:', p.tag); if (newTag === null) return;
+    const newDesc  = prompt('Description:', p.desc); if (newDesc === null) return;
+    const newUrl   = prompt('Live URL (leave blank if none):', p.url || '');
+    const newImage = prompt('Image URL (leave blank for color block):', p.image || '');
+
+    data.projects[i] = { ...p, title: newTitle, tag: newTag, desc: newDesc, url: newUrl || '', image: newImage || '' };
+    renderProjectList();
+  }
+
+  /* ── REMOVE PROJECT ── */
+  function removeProject(i) {
+    if (!confirm(`Remove "${data.projects[i].title}"?`)) return;
+    data.projects.splice(i, 1);
+    renderProjectList();
+  }
+
+  /* ── COLLECT FORM DATA ── */
+  function collectData() {
+    return {
+      projects: data.projects,
+      contact: {
+        phone: document.getElementById('c-phone').value.trim(),
+        phoneHref: document.getElementById('c-phone-href').value.trim(),
+        email: document.getElementById('c-email').value.trim(),
+        location: document.getElementById('c-location').value.trim()
+      },
+      hero: {
+        eyebrow: document.getElementById('h-eyebrow').value.trim(),
+        heading1: document.getElementById('h-line1').value.trim(),
+        headingAccent: document.getElementById('h-accent').value.trim(),
+        heading2: document.getElementById('h-line2').value.trim(),
+        desc: document.getElementById('h-desc').value.trim()
+      },
+      about: {
+        p1: document.getElementById('a-p1').value.trim(),
+        p2: document.getElementById('a-p2').value.trim(),
+        p3: document.getElementById('a-p3').value.trim()
+      }
+    };
+  }
+
+  /* ── SAVE TO GITHUB ── */
+  async function saveAll() {
+    const status = document.getElementById('save-status');
+    status.style.display = 'inline';
+    status.textContent = 'Saving…';
+
+    const payload = collectData();
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+
+    try {
+      const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'Admin update via admin panel',
+          content,
+          sha: data._sha
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message);
+      }
+
+      const json = await res.json();
+      data._sha = json.content.sha;
+      status.textContent = '✓ Published!';
+      setTimeout(() => { status.style.display = 'none'; }, 3000);
+    } catch(e) {
+      status.textContent = '✗ Error: ' + e.message;
+      status.style.color = '#f54242';
+    }
+  }
+</script>
+</body>
+</html>
