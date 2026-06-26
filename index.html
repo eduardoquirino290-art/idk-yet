@@ -450,6 +450,11 @@
     const THUMBS = ['thumb-1','thumb-2','thumb-3','thumb-4','thumb-5','thumb-6','thumb-7','thumb-8'];
 
     async function loadData() {
+      // Prefer the live API (instant cross-device sync); fall back to the static file.
+      try {
+        const r = await fetch('/api/data', { cache: 'no-store' });
+        if (r.ok) return await r.json();
+      } catch {}
       try {
         const r = await fetch('data.json?v=' + Date.now());
         return await r.json();
@@ -467,9 +472,15 @@
           card.dataset.url = p.url;
           card.addEventListener('click', () => window.open(p.url, '_blank', 'noopener'));
         }
-        const thumbHTML = p.image
-          ? `<div class="card-thumb"><img class="card-img" src="${p.image}" alt="${p.title}" loading="lazy"/></div>`
-          : `<div class="card-thumb ${thumb}"><span class="thumb-label">project ${String(i+1).padStart(3,'0')}</span></div>`;
+        let thumbHTML;
+        if (p.image) {
+          thumbHTML = `<div class="card-thumb"><img class="card-img" src="${p.image}" alt="${p.title}" loading="lazy"/></div>`;
+        } else if (Array.isArray(p.gradient) && p.gradient.length === 2) {
+          const grad = `linear-gradient(135deg, ${p.gradient[0]}, ${p.gradient[1]})`;
+          thumbHTML = `<div class="card-thumb" style="background:${grad}"><span class="thumb-label">project ${String(i+1).padStart(3,'0')}</span></div>`;
+        } else {
+          thumbHTML = `<div class="card-thumb ${thumb}"><span class="thumb-label">project ${String(i+1).padStart(3,'0')}</span></div>`;
+        }
         card.innerHTML = `${thumbHTML}
           <div class="card-body">
             <div class="card-tag">${p.tag}</div>
@@ -536,8 +547,7 @@
       document.body.classList.toggle('neon-off', t.neon === false);
     }
 
-    (async () => {
-      const data = await loadData();
+    function applyAll(data) {
       if (!data) return;
       if (data.theme)    applyTheme(data.theme);
       if (data.projects) renderProjects(data.projects);
@@ -545,7 +555,28 @@
       if (data.about)    renderAbout(data.about);
       if (data.contact)  renderContact(data.contact);
       if (data.hero)     renderHero(data.hero);
-    })();
+    }
+
+    /* ── LIVE SYNC ── re-render whenever the published content changes ── */
+    let _version = null;
+    function versionOf(d) { return d._sha || JSON.stringify(d); }
+
+    async function refresh() {
+      const data = await loadData();
+      if (!data) return;
+      const v = versionOf(data);
+      if (v !== _version) { _version = v; applyAll(data); }
+    }
+
+    refresh();                                   // initial load
+    setInterval(refresh, 15000);                 // poll every 15s for cross-device sync
+    window.addEventListener('focus', refresh);   // refresh when a tab regains focus
+
+    // instant update across tabs/displays on the same browser after an admin save
+    if ('BroadcastChannel' in window) {
+      const ch = new BroadcastChannel('rmd-sync');
+      ch.onmessage = (e) => { if (e.data === 'saved') refresh(); };
+    }
   </script>
 </body>
 </html>

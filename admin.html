@@ -118,13 +118,10 @@
     .proj-tag { font-size: 0.67rem; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
     .proj-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
 
-    /* ── ADD FORM ── */
-    .add-form { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 1.1rem; }
-    .add-form h3 { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 1rem; }
+    /* ── FORM ROWS ── */
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
     .row2 input { margin-bottom: 0; }
-    .form-actions { display: flex; gap: 0.6rem; margin-top: 0.75rem; flex-wrap: wrap; }
 
     /* ── APPEARANCE ── */
     .color-field { display: flex; gap: 0.6rem; align-items: center; }
@@ -212,6 +209,44 @@
     .modal .modal-sub { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.55; }
     .modal .modal-sub a { color: var(--accent); }
     .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.25rem; }
+    .modal-wide { max-width: 540px; max-height: 90svh; overflow-y: auto; }
+    .muted-note { color: var(--muted); font-size: 0.68rem; }
+
+    /* ── PROJECT THUMB PREVIEW + PRESETS ── */
+    .proj-preview {
+      height: 120px; border-radius: 6px; margin-bottom: 1.1rem;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg,#1a1a2e,#16213e); overflow: hidden;
+    }
+    .proj-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .proj-preview .thumb-label { font-size: 0.62rem; color: rgba(255,255,255,0.25); letter-spacing: 0.12em; text-transform: uppercase; }
+
+    .thumb-presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .thumb-preset {
+      width: 48px; height: 32px; border-radius: 5px; cursor: pointer;
+      border: 2px solid var(--border); padding: 0; transition: border-color 0.15s, transform 0.15s;
+    }
+    .thumb-preset:hover { transform: scale(1.08); }
+    .thumb-preset.active { border-color: var(--text); }
+    .tp-1{background:linear-gradient(135deg,#1a1a2e,#16213e)}
+    .tp-2{background:linear-gradient(135deg,#0d1b2a,#1b3a5c)}
+    .tp-3{background:linear-gradient(135deg,#1a0a0a,#3d1515)}
+    .tp-4{background:linear-gradient(135deg,#0a1a0a,#153d15)}
+    .tp-5{background:linear-gradient(135deg,#1a1a0a,#3d3d15)}
+    .tp-6{background:linear-gradient(135deg,#1a0a1a,#3d1564)}
+    .tp-7{background:linear-gradient(135deg,#0a1a1a,#154040)}
+    .tp-8{background:linear-gradient(135deg,#1a0f0a,#3d2010)}
+
+    /* ── PROJECT LIST ITEM ── */
+    .proj-thumb { width: 46px; height: 32px; border-radius: 4px; flex-shrink: 0; background-size: cover; background-position: center; }
+    .proj-reorder { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
+    .proj-reorder button {
+      background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+      border-radius: 3px; width: 24px; height: 16px; font-size: 0.55rem; cursor: pointer;
+      line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center;
+    }
+    .proj-reorder button:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+    .proj-reorder button:disabled { opacity: 0.25; cursor: default; }
   </style>
 </head>
 <body>
@@ -290,22 +325,7 @@
       </div>
       <div class="panel-body">
         <div class="proj-list" id="proj-list"></div>
-        <div class="add-form">
-          <h3>Add New Project</h3>
-          <div class="row2">
-            <div><label>Title</label><input id="np-title" placeholder="Project name" /></div>
-            <div><label>Category / Tag</label><input id="np-tag" placeholder="Web Design, Brand…" /></div>
-          </div>
-          <label>Description</label>
-          <textarea id="np-desc" placeholder="Short description…"></textarea>
-          <label>Live URL <span style="color:var(--muted);font-size:0.68rem">(optional — makes card clickable)</span></label>
-          <input id="np-url" type="url" placeholder="https://…" />
-          <label>Image URL <span style="color:var(--muted);font-size:0.68rem">(optional — leave blank for colour block)</span></label>
-          <input id="np-image" type="url" placeholder="https://… .jpg or .png" />
-          <div class="form-actions">
-            <button class="btn btn-primary" style="width:auto" onclick="addProject()">+ Add Project</button>
-          </div>
-        </div>
+        <button class="btn btn-primary" style="width:auto" onclick="openProjectModal()">+ Add Project</button>
       </div>
     </div>
 
@@ -390,6 +410,61 @@
       </div>
     </div>
   </div>
+
+  <!-- PROJECT EDITOR MODAL -->
+  <div class="modal-overlay" id="proj-modal">
+    <div class="modal modal-wide">
+      <h3 id="proj-modal-title">Add Project</h3>
+
+      <div class="proj-preview" id="proj-preview"><span class="thumb-label">preview</span></div>
+
+      <div class="row2">
+        <div><label>Title</label><input id="pm-title" placeholder="Project name" /></div>
+        <div><label>Category / Tag</label><input id="pm-tag" placeholder="Web Design, Brand…" /></div>
+      </div>
+      <label>Description</label>
+      <textarea id="pm-desc" placeholder="Short description…"></textarea>
+      <label>Live URL <span class="muted-note">(optional — makes the card clickable)</span></label>
+      <input id="pm-url" type="url" placeholder="https://…" />
+
+      <label>Thumbnail Style</label>
+      <select id="pm-thumb-type" onchange="onThumbTypeChange()">
+        <option value="preset">Gradient preset</option>
+        <option value="custom">Custom gradient</option>
+        <option value="image">Image</option>
+      </select>
+
+      <div id="pm-preset-row" class="thumb-presets"></div>
+
+      <div id="pm-custom-row" class="row2" style="display:none">
+        <div>
+          <label>From colour</label>
+          <div class="color-field">
+            <input type="color" id="pm-grad1" value="#1a1a2e" oninput="syncGrad(1,'picker')" />
+            <input type="text"  id="pm-grad1-hex" value="#1a1a2e" oninput="syncGrad(1,'hex')" />
+          </div>
+        </div>
+        <div>
+          <label>To colour</label>
+          <div class="color-field">
+            <input type="color" id="pm-grad2" value="#16213e" oninput="syncGrad(2,'picker')" />
+            <input type="text"  id="pm-grad2-hex" value="#16213e" oninput="syncGrad(2,'hex')" />
+          </div>
+        </div>
+      </div>
+
+      <div id="pm-image-row" style="display:none">
+        <label>Image URL</label>
+        <input id="pm-image" type="url" placeholder="https://… .jpg or .png" oninput="updateProjPreview()" />
+      </div>
+
+      <p class="err" id="pm-err">Title and category are required.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeProjectModal()">Cancel</button>
+        <button class="btn btn-primary" style="width:auto" onclick="saveProject()">Save Project</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -406,6 +481,7 @@
     const match = Object.entries(ADMINS).find(([,p]) => p === pw);
     if (!match) { err.style.display='block'; err.textContent='Incorrect password.'; return; }
     sessionStorage.setItem('rm_usr', match[0]);
+    sessionStorage.setItem('rm_pw', pw);   // used to authenticate tokenless saves via /api/save
     err.style.display = 'none';
     initAdmin(match[0]);
   }
@@ -535,52 +611,188 @@
   }
 
   /* ── PROJECTS ── */
+  const PRESET_GRADS = {
+    'thumb-1': ['#1a1a2e','#16213e'], 'thumb-2': ['#0d1b2a','#1b3a5c'],
+    'thumb-3': ['#1a0a0a','#3d1515'], 'thumb-4': ['#0a1a0a','#153d15'],
+    'thumb-5': ['#1a1a0a','#3d3d15'], 'thumb-6': ['#1a0a1a','#3d1564'],
+    'thumb-7': ['#0a1a1a','#154040'], 'thumb-8': ['#1a0f0a','#3d2010']
+  };
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+
+  function thumbStyleFor(p, i) {
+    if (p.image) return `background-image:url('${p.image}')`;
+    if (Array.isArray(p.gradient) && p.gradient.length === 2)
+      return `background:linear-gradient(135deg,${p.gradient[0]},${p.gradient[1]})`;
+    const g = PRESET_GRADS[p.thumb] || PRESET_GRADS['thumb-' + ((i % 8) + 1)] || PRESET_GRADS['thumb-1'];
+    return `background:linear-gradient(135deg,${g[0]},${g[1]})`;
+  }
+
   function renderProjList() {
     const list = document.getElementById('proj-list');
+    const projects = data.projects || [];
     list.innerHTML = '';
-    (data.projects || []).forEach((p, i) => {
+    if (!projects.length) {
+      list.innerHTML = '<p class="hint" style="margin-bottom:1rem">No projects yet — add your first one below.</p>';
+      return;
+    }
+    projects.forEach((p, i) => {
       const el = document.createElement('div');
       el.className = 'proj-item';
       el.innerHTML = `
+        <div class="proj-reorder">
+          <button onclick="moveProject(${i},-1)" ${i===0?'disabled':''} title="Move up">▲</button>
+          <button onclick="moveProject(${i},1)" ${i===projects.length-1?'disabled':''} title="Move down">▼</button>
+        </div>
+        <div class="proj-thumb" style="${thumbStyleFor(p, i)}"></div>
         <div class="proj-info">
-          <div class="proj-tag">${p.tag}</div>
-          <div class="proj-title">${p.title}</div>
+          <div class="proj-tag">${escapeHtml(p.tag)}</div>
+          <div class="proj-title">${escapeHtml(p.title)}</div>
         </div>
         <div class="proj-actions">
-          <button class="btn btn-ghost btn-sm" onclick="editProject(${i})">Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="openProjectModal(${i})">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="removeProject(${i})">Remove</button>
         </div>`;
       list.appendChild(el);
     });
   }
 
-  function addProject() {
-    const title = document.getElementById('np-title').value.trim();
-    const tag   = document.getElementById('np-tag').value.trim();
-    const desc  = document.getElementById('np-desc').value.trim();
-    const url   = document.getElementById('np-url').value.trim();
-    const image = document.getElementById('np-image').value.trim();
-    if (!title || !tag) { alert('Title and category are required.'); return; }
-    data.projects = data.projects || [];
-    data.projects.push({ id: String(Date.now()), tag, title, desc, url, image });
-    renderProjList();
-    ['np-title','np-tag','np-desc','np-url','np-image'].forEach(id => document.getElementById(id).value = '');
-  }
-
-  function editProject(i) {
-    const p = data.projects[i];
-    const t = prompt('Title:', p.title); if (t===null) return;
-    const g = prompt('Category / Tag:', p.tag); if (g===null) return;
-    const d = prompt('Description:', p.desc); if (d===null) return;
-    const u = prompt('Live URL (blank = none):', p.url || '');
-    const m = prompt('Image URL (blank = colour block):', p.image || '');
-    data.projects[i] = { ...p, title:t, tag:g, desc:d, url:u||'', image:m||'' };
+  function moveProject(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= data.projects.length) return;
+    const a = data.projects;
+    [a[i], a[j]] = [a[j], a[i]];
     renderProjList();
   }
 
   function removeProject(i) {
     if (!confirm(`Remove "${data.projects[i].title}"?`)) return;
     data.projects.splice(i, 1);
+    renderProjList();
+  }
+
+  /* ── PROJECT EDITOR MODAL ── */
+  let editingIndex = null;
+  let _selectedPreset = 'thumb-1';
+
+  function openProjectModal(i) {
+    editingIndex = (typeof i === 'number') ? i : null;
+    const p = editingIndex !== null ? data.projects[editingIndex] : {};
+    document.getElementById('proj-modal-title').textContent = editingIndex !== null ? 'Edit Project' : 'Add Project';
+    document.getElementById('pm-title').value = p.title || '';
+    document.getElementById('pm-tag').value   = p.tag || '';
+    document.getElementById('pm-desc').value  = p.desc || '';
+    document.getElementById('pm-url').value   = p.url || '';
+    document.getElementById('pm-image').value = p.image || '';
+    document.getElementById('pm-err').style.display = 'none';
+
+    let type = 'preset';
+    if (p.image) type = 'image';
+    else if (Array.isArray(p.gradient) && p.gradient.length === 2) type = 'custom';
+    document.getElementById('pm-thumb-type').value = type;
+
+    _selectedPreset = (p.thumb && PRESET_GRADS[p.thumb]) ? p.thumb : 'thumb-1';
+    const g = (Array.isArray(p.gradient) && p.gradient.length === 2) ? p.gradient : ['#1a1a2e','#16213e'];
+    setGradVal(1, g[0]); setGradVal(2, g[1]);
+
+    renderPresetRow();
+    onThumbTypeChange();
+    document.getElementById('proj-modal').classList.add('open');
+  }
+
+  function closeProjectModal() {
+    document.getElementById('proj-modal').classList.remove('open');
+    editingIndex = null;
+  }
+
+  function renderPresetRow() {
+    const row = document.getElementById('pm-preset-row');
+    row.innerHTML = '';
+    Object.keys(PRESET_GRADS).forEach((k, idx) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'thumb-preset tp-' + (idx + 1) + (k === _selectedPreset ? ' active' : '');
+      b.title = k;
+      b.onclick = () => { _selectedPreset = k; renderPresetRow(); updateProjPreview(); };
+      row.appendChild(b);
+    });
+  }
+
+  function onThumbTypeChange() {
+    const t = document.getElementById('pm-thumb-type').value;
+    document.getElementById('pm-preset-row').style.display = t === 'preset' ? 'flex' : 'none';
+    document.getElementById('pm-custom-row').style.display = t === 'custom' ? 'grid' : 'none';
+    document.getElementById('pm-image-row').style.display  = t === 'image'  ? 'block' : 'none';
+    updateProjPreview();
+  }
+
+  function setGradVal(n, hex) {
+    document.getElementById('pm-grad' + n).value = /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#000000';
+    document.getElementById('pm-grad' + n + '-hex').value = hex;
+  }
+  function syncGrad(n, src) {
+    if (src === 'hex') {
+      let v = document.getElementById('pm-grad' + n + '-hex').value.trim();
+      if (!v.startsWith('#')) v = '#' + v;
+      if (/^#[0-9a-f]{6}$/i.test(v)) document.getElementById('pm-grad' + n).value = v;
+    } else {
+      document.getElementById('pm-grad' + n + '-hex').value = document.getElementById('pm-grad' + n).value;
+    }
+    updateProjPreview();
+  }
+
+  function updateProjPreview() {
+    const t = document.getElementById('pm-thumb-type').value;
+    const prev = document.getElementById('proj-preview');
+    if (t === 'image') {
+      const url = document.getElementById('pm-image').value.trim();
+      if (url) { prev.style.background = '#000'; prev.innerHTML = `<img src="${url}" alt="" />`; return; }
+      prev.style.background = 'var(--surface2)';
+      prev.innerHTML = '<span class="thumb-label">add an image url</span>';
+      return;
+    }
+    let c1, c2;
+    if (t === 'custom') {
+      c1 = document.getElementById('pm-grad1').value;
+      c2 = document.getElementById('pm-grad2').value;
+    } else {
+      [c1, c2] = PRESET_GRADS[_selectedPreset];
+    }
+    prev.style.background = `linear-gradient(135deg,${c1},${c2})`;
+    prev.innerHTML = '<span class="thumb-label">preview</span>';
+  }
+
+  function saveProject() {
+    const title = document.getElementById('pm-title').value.trim();
+    const tag   = document.getElementById('pm-tag').value.trim();
+    if (!title || !tag) { document.getElementById('pm-err').style.display = 'block'; return; }
+
+    const t = document.getElementById('pm-thumb-type').value;
+    const proj = {
+      title, tag,
+      desc: document.getElementById('pm-desc').value.trim(),
+      url:  document.getElementById('pm-url').value.trim(),
+      thumb: '', image: ''
+    };
+    if (t === 'image') {
+      proj.image = document.getElementById('pm-image').value.trim();
+    } else if (t === 'custom') {
+      proj.gradient = [document.getElementById('pm-grad1').value, document.getElementById('pm-grad2').value];
+    } else {
+      proj.thumb = _selectedPreset;
+    }
+
+    data.projects = data.projects || [];
+    if (editingIndex !== null) {
+      proj.id = data.projects[editingIndex].id || String(Date.now());
+      data.projects[editingIndex] = proj;
+    } else {
+      proj.id = String(Date.now());
+      data.projects.push(proj);
+    }
+    closeProjectModal();
     renderProjList();
   }
 
@@ -670,20 +882,57 @@
   document.getElementById('modal-tok').addEventListener('keydown', e => { if (e.key==='Enter') closeTokenModal(true); });
 
   /* ── SAVE ── */
+  function showStatus(st, msg, color, hideAfter) {
+    st.style.display = 'inline';
+    st.style.color = color;
+    st.textContent = msg;
+    if (hideAfter) setTimeout(() => { st.style.display = 'none'; }, hideAfter);
+  }
+
+  // tell other open tabs/displays on this browser to refresh instantly
+  function broadcastSaved() {
+    try { const ch = new BroadcastChannel('rmd-sync'); ch.postMessage('saved'); ch.close(); } catch {}
+  }
+
   async function saveAll() {
+    const st = document.getElementById('save-status');
+    const payload = collectData();
+    showStatus(st, 'Saving…', 'var(--accent)');
+
+    // 1) Preferred path: tokenless publish via the Vercel function
+    try {
+      const res = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: sessionStorage.getItem('rm_pw') || '', data: payload })
+      });
+
+      if (res.status === 404) return saveViaToken(payload, st);   // API not deployed → fallback
+
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) {
+        data._sha = j.sha || data._sha;
+        showStatus(st, '✓ Published!', 'var(--accent)', 3500);
+        broadcastSaved();
+        return;
+      }
+      if (res.status === 401) { showStatus(st, '✗ Server rejected the password', 'var(--danger)'); return; }
+      if (res.status === 500 && /not configured/i.test(j.error || '')) return saveViaToken(payload, st);
+      throw new Error(j.error || ('Save failed (' + res.status + ')'));
+    } catch (e) {
+      if (e instanceof TypeError) return saveViaToken(payload, st);  // no API / network → fallback
+      showStatus(st, '✗ ' + e.message, 'var(--danger)');
+    }
+  }
+
+  // Fallback: publish straight to GitHub with a personal token (works on any static host)
+  async function saveViaToken(payload, st) {
     if (!token) {
       const ok = await promptToken();
-      if (!ok) return;
+      if (!ok) { st.style.display = 'none'; return; }
     }
-
-    const st = document.getElementById('save-status');
-    st.style.display = 'inline';
-    st.style.color = 'var(--accent)';
-    st.textContent = 'Saving…';
-
-    const payload = collectData();
+    showStatus(st, 'Saving…', 'var(--accent)');
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-
     try {
       const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
         method: 'PUT',
@@ -693,12 +942,10 @@
       if (!res.ok) throw new Error((await res.json()).message);
       const j = await res.json();
       data._sha = j.content.sha;
-      st.textContent = '✓ Published!';
-      setTimeout(() => { st.style.display = 'none'; }, 3500);
+      showStatus(st, '✓ Published!', 'var(--accent)', 3500);
+      broadcastSaved();
     } catch(e) {
-      st.style.color = 'var(--danger)';
-      st.textContent = '✗ ' + e.message;
-      // bad / expired token → forget it so the next publish asks again
+      showStatus(st, '✗ ' + e.message, 'var(--danger)');
       if (/bad credentials|401|403|not found/i.test(e.message)) {
         token = '';
         sessionStorage.removeItem('rm_tok');
