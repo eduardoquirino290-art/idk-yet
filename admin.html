@@ -424,15 +424,23 @@
       </div>
       <label>Description</label>
       <textarea id="pm-desc" placeholder="Short description…"></textarea>
-      <label>Live URL <span class="muted-note">(optional — makes the card clickable)</span></label>
-      <input id="pm-url" type="url" placeholder="https://…" />
+      <label>Live URL <span class="muted-note">(optional — makes the card clickable; required for screenshot)</span></label>
+      <input id="pm-url" type="url" placeholder="https://…" oninput="updateProjPreview()" />
 
       <label>Thumbnail Style</label>
       <select id="pm-thumb-type" onchange="onThumbTypeChange()">
+        <option value="screenshot">Website screenshot (from the live URL)</option>
         <option value="preset">Gradient preset</option>
         <option value="custom">Custom gradient</option>
         <option value="image">Image</option>
       </select>
+
+      <div id="pm-screenshot-row">
+        <p class="muted-note" style="margin-bottom:1rem">
+          The card shows a live screenshot of the page in <b>Live URL</b> above.
+          First load can take a few seconds while the screenshot is generated.
+        </p>
+      </div>
 
       <div id="pm-preset-row" class="thumb-presets"></div>
 
@@ -622,8 +630,13 @@
     return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
 
+  function SHOT(u) {
+    return 'https://s.wordpress.com/mshots/v1/' + encodeURIComponent(u) + '?w=400&h=250';
+  }
+
   function thumbStyleFor(p, i) {
     if (p.image) return `background-image:url('${p.image}')`;
+    if (p.screenshot && p.url) return `background-image:url('${SHOT(p.url)}')`;
     if (Array.isArray(p.gradient) && p.gradient.length === 2)
       return `background:linear-gradient(135deg,${p.gradient[0]},${p.gradient[1]})`;
     const g = PRESET_GRADS[p.thumb] || PRESET_GRADS['thumb-' + ((i % 8) + 1)] || PRESET_GRADS['thumb-1'];
@@ -689,8 +702,10 @@
     document.getElementById('pm-err').style.display = 'none';
 
     let type = 'preset';
-    if (p.image) type = 'image';
+    if (p.screenshot) type = 'screenshot';
+    else if (p.image) type = 'image';
     else if (Array.isArray(p.gradient) && p.gradient.length === 2) type = 'custom';
+    else if (editingIndex === null) type = 'screenshot';   // sensible default for new projects
     document.getElementById('pm-thumb-type').value = type;
 
     _selectedPreset = (p.thumb && PRESET_GRADS[p.thumb]) ? p.thumb : 'thumb-1';
@@ -722,6 +737,7 @@
 
   function onThumbTypeChange() {
     const t = document.getElementById('pm-thumb-type').value;
+    document.getElementById('pm-screenshot-row').style.display = t === 'screenshot' ? 'block' : 'none';
     document.getElementById('pm-preset-row').style.display = t === 'preset' ? 'flex' : 'none';
     document.getElementById('pm-custom-row').style.display = t === 'custom' ? 'grid' : 'none';
     document.getElementById('pm-image-row').style.display  = t === 'image'  ? 'block' : 'none';
@@ -746,6 +762,13 @@
   function updateProjPreview() {
     const t = document.getElementById('pm-thumb-type').value;
     const prev = document.getElementById('proj-preview');
+    if (t === 'screenshot') {
+      const url = document.getElementById('pm-url').value.trim();
+      if (url) { prev.style.background = '#000'; prev.innerHTML = `<img src="${SHOT(url)}" alt="" />`; return; }
+      prev.style.background = 'var(--surface2)';
+      prev.innerHTML = '<span class="thumb-label">enter a live url above</span>';
+      return;
+    }
     if (t === 'image') {
       const url = document.getElementById('pm-image').value.trim();
       if (url) { prev.style.background = '#000'; prev.innerHTML = `<img src="${url}" alt="" />`; return; }
@@ -767,16 +790,22 @@
   function saveProject() {
     const title = document.getElementById('pm-title').value.trim();
     const tag   = document.getElementById('pm-tag').value.trim();
-    if (!title || !tag) { document.getElementById('pm-err').style.display = 'block'; return; }
+    const errEl = document.getElementById('pm-err');
+    if (!title || !tag) { errEl.textContent = 'Title and category are required.'; errEl.style.display = 'block'; return; }
 
     const t = document.getElementById('pm-thumb-type').value;
+    const url = document.getElementById('pm-url').value.trim();
+    if (t === 'screenshot' && !url) { document.getElementById('pm-err').textContent = 'A live URL is required for a website screenshot.'; document.getElementById('pm-err').style.display = 'block'; return; }
+
     const proj = {
       title, tag,
       desc: document.getElementById('pm-desc').value.trim(),
-      url:  document.getElementById('pm-url').value.trim(),
-      thumb: '', image: ''
+      url,
+      thumb: '', image: '', screenshot: false
     };
-    if (t === 'image') {
+    if (t === 'screenshot') {
+      proj.screenshot = true;
+    } else if (t === 'image') {
       proj.image = document.getElementById('pm-image').value.trim();
     } else if (t === 'custom') {
       proj.gradient = [document.getElementById('pm-grad1').value, document.getElementById('pm-grad2').value];
@@ -907,7 +936,9 @@
         body: JSON.stringify({ password: sessionStorage.getItem('rm_pw') || '', data: payload })
       });
 
-      if (res.status === 404) return saveViaToken(payload, st);   // API not deployed → fallback
+      // No serverless API on this host (e.g. GitHub Pages is static and only
+      // allows GET — it answers POST with 405). 404/405/501 → use token fallback.
+      if ([404, 405, 501].includes(res.status)) return saveViaToken(payload, st);
 
       const j = await res.json().catch(() => ({}));
       if (res.ok) {
